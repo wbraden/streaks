@@ -134,7 +134,7 @@ function RoutedLearningModule() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/streaks">
       <Routes>
         <Route path="/" element={<LoginForm />} />
         <Route path="/ways-to-earn" element={<RoutedWaysToEarn />} />
