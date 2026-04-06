@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider } from 'styled-components'
-import { theme } from '@shipt/design-system-themes'
+import { shiptLight as theme } from '@shipt/design-system-themes'
 import './index.css'
 import App from './App.jsx'
 

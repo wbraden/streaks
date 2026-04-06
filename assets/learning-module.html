@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heavy Item Handling — Learning Module</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+  BASE WEB DESIGN TOKENS — exact from v8.baseweb.design/guides/theming/
+  Icons: baseui@8.18.0 package/es/icon/*.js (MIT, Uber Technologies, Inc.)
+*/
+:root {
+  --mono100:#FFFFFF; --mono200:#F7F7F7; --mono300:#F0F0F0; --mono400:#E5E5E5;
+  --mono500:#CCCCCC; --mono600:#B3B3B3; --mono700:#999999; --mono800:#666666;
+  --mono900:#333333; --mono1000:#000000;
+
+  --positive:#07A35A; --positive50:#EBF8F2; --positive100:#CDEDDE;
+  --negative:#E54937; --negative50:#FDF0EF;
+  --warning:#ED6F0E;  --warning50:#FEF3EC;
+  --primary:#276EF1;  --primary50:#EDF3FE;  --primary500:#174EB6;
+  --rating400:#FFC043;
+
+  --background:#FFFFFF;
+  --foreground:#000000;
+  --foregroundAlt:#666666;
+
+  --buttonPrimaryFill:#276EF1; --buttonPrimaryText:#FFFFFF; --buttonPrimaryHover:#174EB6;
+  --buttonDisabledFill:#F0F0F0; --buttonDisabledText:#B3B3B3;
+  --menuFillHover:#F7F7F7;
+
+  --tagPosLightBg:#EBF8F2; --tagPosLightText:#057C44;
+  --tagPriLightBg:#EDF3FE; --tagPriLightText:#174EB6;
+  --tagNeuLightBg:#F0F0F0; --tagNeuLightText:#333333;
+  --tagWarnLightBg:#FEF3EC; --tagWarnLightText:#B4540B;
+
+  --progressTrack:#333333;
+
+  --s0:2px; --s100:4px; --s200:6px; --s300:8px; --s400:10px;
+  --s500:12px; --s550:14px; --s600:16px; --s650:18px; --s700:20px;
+  --s800:24px; --s900:32px; --s1000:40px; --s1200:48px; --s1400:56px;
+
+  --r100:2px; --r200:4px; --r300:8px;
+  --btnRadius:0px; --surfRadius:0px;
+
+  --shadow400:0 1px 4px hsla(0,0%,0%,0.16);
+  --shadow500:0 2px 8px hsla(0,0%,0%,0.16);
+
+  --b200:1px solid hsla(0,0%,0%,0.08);
+  --b300:1px solid hsla(0,0%,0%,0.12);
+  --b400:1px solid hsla(0,0%,0%,0.16);
+
+  --t100:0.25s; --t400:0.4s;
+  --easeOut:cubic-bezier(.2,.8,.4,1);
+
+  --font:'DM Sans',system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  --max-w:680px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:light;background:#FFFFFF}
+html,body{height:100%}
+body{
+  font-family:var(--font);
+  background:var(--background);
+  color:var(--foreground);
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;
+}
+button{font-family:var(--font);cursor:pointer;border:none;background:none;color:inherit}
+
+/* ── LAYOUT ── */
+.header-bar{
+  position:sticky;top:0;z-index:50;
+  background:var(--background);
+  border-bottom:var(--b300);
+}
+.header{
+  display:flex;align-items:center;gap:var(--s600);
+  padding:var(--s600) var(--s600) var(--s500);
+  max-width:var(--max-w);margin:0 auto;
+}
+.screen{
+  flex:1;
+  max-width:var(--max-w);margin:0 auto;width:100%;
+  padding-bottom:120px;
+  background:#FFFFFF;
+}
+
+/* ── BACK BUTTON ── */
+.back-btn{
+  width:var(--s1000);height:var(--s1000);
+  border-radius:var(--btnRadius);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--foreground);flex-shrink:0;
+  transition:background var(--t100) var(--easeOut);
+}
+.back-btn:hover{background:var(--mono300)}
+
+/* ── VIDEO HERO ── */
+.video-hero{
+  background:var(--mono1000);
+  aspect-ratio:16/9;
+  width:100%;
+  position:relative;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+}
+.video-bg{
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+}
+/* Subtle abstract pattern suggesting physicality */
+.video-bg::before{
+  content:'';
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 30% 60%,rgba(39,110,241,0.15) 0%,transparent 50%),
+    radial-gradient(ellipse at 70% 30%,rgba(255,255,255,0.04) 0%,transparent 40%);
+}
+.video-content{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;gap:var(--s400);
+}
+.play-btn{
+  width:64px;height:64px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  border:2px solid rgba(255,255,255,0.4);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;
+  transition:background var(--t100) var(--easeOut),transform var(--t100) var(--easeOut);
+  backdrop-filter:blur(4px);
+}
+.play-btn:hover{background:rgba(255,255,255,0.25);transform:scale(1.05)}
+.video-label{
+  font-size:12px;font-weight:400;line-height:20px;
+  color:rgba(255,255,255,0.6);
+  letter-spacing:0.02em;
+}
+.video-duration{
+  position:absolute;bottom:var(--s500);right:var(--s600);
+  font-size:11px;font-weight:500;
+  color:rgba(255,255,255,0.7);
+  background:rgba(0,0,0,0.4);
+  padding:2px 8px;border-radius:var(--r100);
+  backdrop-filter:blur(4px);
+}
+
+/* ── MODULE HEADER ── */
+.module-header{
+  padding:var(--s700) var(--s600) var(--s500);
+  border-bottom:var(--b300);
+}
+.module-eyebrow{
+  font-size:11px;font-weight:400;line-height:16px;
+  letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--foregroundAlt);margin-bottom:var(--s200);
+  display:flex;align-items:center;gap:var(--s200);
+}
+.module-title{
+  font-size:24px;font-weight:500;line-height:36px; /* font600 */
+  letter-spacing:-0.3px;
+  margin-bottom:var(--s400);
+}
+.module-desc{
+  font-size:14px;font-weight:400;line-height:20px; /* font300 */
+  color:var(--foregroundAlt);
+  margin-bottom:var(--s600);
+}
+.module-meta-row{
+  display:flex;align-items:center;gap:var(--s600);
+  flex-wrap:wrap;
+}
+.meta-item{
+  display:flex;align-items:center;gap:var(--s200);
+  font-size:12px;font-weight:400;line-height:20px;
+  color:var(--foregroundAlt);
+}
+.meta-item svg{flex-shrink:0}
+
+/* ── REWARD CALLOUT ── */
+.reward-callout{
+  margin:var(--s600);
+  padding:var(--s500) var(--s600);
+  background:var(--tagPriLightBg);
+  border-radius:var(--r200);
+  border-left:3px solid var(--primary);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:var(--s600);
+}
+.reward-callout .rc-left{}
+.reward-callout .rc-eyebrow{
+  font-size:11px;font-weight:400;line-height:16px;
+  letter-spacing:0.06em;text-transform:uppercase;
+  color:var(--tagPriLightText);margin-bottom:var(--s100);
+}
+.reward-callout .rc-amount{
+  font-size:20px;font-weight:500;line-height:28px; /* font500 */
+  color:var(--primary);
+}
+.reward-callout .rc-note{
+  font-size:12px;font-weight:400;line-height:20px;
+  color:var(--tagPriLightText);
+}
+
+/* ── OVERALL PROGRESS ── */
+.overall-progress{
+  padding:var(--s600);
+  border-bottom:var(--b300);
+}
+.op-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:var(--s300);
+}
+.op-label{
+  font-size:14px;font-weight:500;line-height:20px; /* font350 */
+}
+.op-fraction{
+  font-size:12px;font-weight:400;line-height:20px;
+  color:var(--foregroundAlt);
+}
+.progress-track{
+  height:4px;background:var(--mono400);border-radius:var(--r100);
+  overflow:hidden;margin-bottom:var(--s200);
+}
+.progress-fill{
+  height:100%;border-radius:var(--r100);
+  transition:width var(--t400) var(--easeOut);
+}
+.fill-primary{background:var(--primary)}
+.fill-pos{background:var(--positive)}
+.fill-dark{background:var(--progressTrack)}
+.op-sublabel{
+  font-size:11px;font-weight:400;line-height:16px;
+  color:var(--foregroundAlt);
+}
+
+/* ── SECTION LABEL ── */
+.section-label{
+  padding:var(--s700) var(--s600) var(--s300);
+  font-size:11px;font-weight:400;line-height:16px;
+  letter-spacing:0.1em;text-transform:uppercase;color:var(--foregroundAlt);
+  background:#FFFFFF;
+}
+
+/* ── LESSON ITEM ── */
+.lesson-item{
+  border-bottom:var(--b300);
+  overflow:hidden;
+}
+.lesson-trigger{
+  display:flex;align-items:center;gap:var(--s600);
+  padding:var(--s600);
+  cursor:pointer;
+  width:100%;text-align:left;
+  background:var(--background);
+  transition:background var(--t100) var(--easeOut);
+}
+.lesson-trigger:hover{background:var(--menuFillHover)}
+
+/* Step indicator circle */
+.step-circle{
+  width:var(--s1000);height:var(--s1000);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  font-size:14px;font-weight:500;line-height:1;
+}
+.step-circle.done{
+  background:var(--positive);
+  color:#fff;
+}
+.step-circle.active{
+  background:var(--mono1000);
+  color:#fff;
+}
+.step-circle.locked{
+  background:var(--mono300);
+  color:var(--mono700);
+}
+
+.lesson-body{flex:1;min-width:0}
+.lesson-title{
+  font-size:14px;font-weight:500;line-height:20px;
+  color:var(--foreground);
+  margin-bottom:2px;
+}
+.lesson-title.muted{color:var(--foregroundAlt)}
+.lesson-meta{
+  font-size:12px;font-weight:400;line-height:20px;
+  color:var(--foregroundAlt);
+  display:flex;align-items:center;gap:var(--s300);
+}
+.lesson-meta .dot{width:3px;height:3px;background:var(--mono500);border-radius:50%;flex-shrink:0}
+
+.lesson-right{display:flex;align-items:center;gap:var(--s300);flex-shrink:0}
+.tag{
+  display:inline-flex;align-items:center;padding:0 var(--s300);
+  border-radius:var(--r200);font-size:11px;font-weight:500;line-height:20px;
+}
+.tag-pos {background:var(--tagPosLightBg); color:var(--tagPosLightText)}
+.tag-pri {background:var(--tagPriLightBg); color:var(--tagPriLightText)}
+.tag-neu {background:var(--tagNeuLightBg); color:var(--tagNeuLightText)}
+.tag-warn{background:var(--tagWarnLightBg);color:var(--tagWarnLightText)}
+
+.expand-icon{
+  color:var(--mono700);
+  transition:transform var(--t100) var(--easeOut);
+  flex-shrink:0;
+}
+.expand-icon.open{transform:rotate(180deg)}
+
+/* ── LESSON EXPANDED CONTENT ── */
+.lesson-content{
+  display:none;
+  background:var(--mono200);
+  padding:var(--s600) var(--s600) var(--s600) calc(var(--s1000) + var(--s600) + var(--s600));
+  border-top:var(--b200);
+}
+.lesson-content.open{display:block}
+.lesson-content p{
+  font-size:14px;font-weight:400;line-height:20px;
+  color:var(--foregroundAlt);
+  margin-bottom:var(--s500);
+}
+.lesson-content p:last-of-type{margin-bottom:0}
+.lesson-content-actions{
+  display:flex;align-items:center;gap:var(--s400);
+  margin-top:var(--s600);
+}
+.btn-sm-primary{
+  background:var(--buttonPrimaryFill);color:var(--buttonPrimaryText);
+  font-size:13px;font-weight:500;line-height:20px;
+  padding:var(--s200) var(--s600);
+  border-radius:var(--btnRadius);
+  transition:background var(--t100) var(--easeOut);
+  display:flex;align-items:center;gap:var(--s200);
+}
+.btn-sm-primary:hover{background:var(--buttonPrimaryHover)}
+.btn-sm-ghost{
+  font-size:13px;font-weight:500;line-height:20px;
+  color:var(--foregroundAlt);
+  padding:var(--s200) var(--s300);
+  border-radius:var(--btnRadius);
+  transition:background var(--t100) var(--easeOut);
+}
+.btn-sm-ghost:hover{background:var(--mono300)}
+
+/* ── KNOWLEDGE CHECK CARD ── */
+.quiz-card{
+  margin:var(--s600);
+  border:var(--b400);
+  border-radius:var(--surfRadius);
+  box-shadow:var(--shadow400);
+  overflow:hidden;
+}
+.quiz-card-header{
+  padding:var(--s600);
+  background:var(--mono1000);
+  color:#fff;
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:var(--s600);
+}
+.quiz-card-header .qh-left{}
+.quiz-card-header .qh-eyebrow{
+  font-size:11px;font-weight:400;line-height:16px;
+  letter-spacing:0.08em;text-transform:uppercase;
+  color:rgba(255,255,255,0.5);margin-bottom:var(--s100);
+}
+.quiz-card-header .qh-title{
+  font-size:18px;font-weight:500;line-height:24px;
+}
+.quiz-card-header .qh-sub{
+  font-size:12px;font-weight:400;line-height:20px;
+  color:rgba(255,255,255,0.5);margin-top:var(--s100);
+}
+.quiz-lock-icon{
+  width:var(--s1000);height:var(--s1000);
+  border-radius:50%;
+  background:rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;color:rgba(255,255,255,0.5);
+}
+.quiz-card-body{
+  padding:var(--s600);
+  background:var(--background);
+}
+.quiz-requirement{
+  display:flex;align-items:center;gap:var(--s400);
+  padding:var(--s400) 0;
+  border-bottom:var(--b200);
+}
+.quiz-requirement:last-of-type{border-bottom:none}
+.req-icon{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.req-icon.done{background:var(--positive);color:#fff}
+.req-icon.todo{background:var(--mono300);color:var(--mono700)}
+.req-label{
+  font-size:13px;font-weight:400;line-height:20px;
+  flex:1;
+}
+.req-label.done{color:var(--foregroundAlt);text-decoration:line-through}
+
+/* ── STICKY CTA BAR ── */
+.cta-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:var(--background);
+  border-top:var(--b300);
+  padding:var(--s500) var(--s600) var(--s900);
+}
+.cta-inner{
+  max-width:var(--max-w);margin:0 auto;
+  display:flex;align-items:center;gap:var(--s500);
+}
+.btn-primary{
+  flex:1;
+  background:var(--buttonPrimaryFill);color:var(--buttonPrimaryText);
+  font-size:16px;font-weight:500;line-height:24px;
+  padding:var(--s500) var(--s700);
+  border-radius:var(--btnRadius);
+  transition:background var(--t100) var(--easeOut);
+  display:flex;align-items:center;justify-content:center;gap:var(--s300);
+}
+.btn-primary:hover{background:var(--buttonPrimaryHover)}
+.btn-primary.disabled{
+  background:var(--buttonDisabledFill);color:var(--buttonDisabledText);
+  cursor:not-allowed;pointer-events:none;
+}
+.cta-note{
+  font-size:11px;font-weight:400;line-height:16px;
+  color:var(--foregroundAlt);text-align:center;
+  margin-top:var(--s200);
+  max-width:var(--max-w);margin:var(--s200) auto 0;
+  display:block;
+}
+
+/* ── DIVIDER ── */
+.divider{height:var(--s600);background:var(--mono300);border-top:var(--b200);border-bottom:var(--b200)}
+
+</style>
+</head>
+<body>
+
+<!-- SVG ICON SPRITE — baseui@8.18.0 MIT License -->
+<svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true">
+  <defs>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M6.29289 11.2929C5.90237 11.6834 5.90237 12.3166 6.29289 12.7071L10.2929 16.7071C10.6834 17.0976 11.3166 17.0976 11.7071 16.7071C12.0976 16.3166 12.0976 15.6834 11.7071 15.2929L9.41421 13H17C17.5523 13 18 12.5523 18 12C18 11.4477 17.5523 11 17 11H9.41421L11.7071 8.70711C12.0976 8.31658 12.0976 7.68342 11.7071 7.29289C11.3166 6.90237 10.6834 6.90237 10.2929 7.29289L6.29289 11.2929Z"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M17.6 7.20006C18.0418 7.53143 18.1314 8.15823 17.8 8.60006L11.8 16.6001C11.6261 16.832 11.3601 16.977 11.0709 16.9975C10.7817 17.0181 10.4979 16.9122 10.2929 16.7072L7.29289 13.7072C6.90237 13.3166 6.90237 12.6835 7.29289 12.293C7.68342 11.9024 8.31658 11.9024 8.70711 12.293L10.8918 14.4777L16.2 7.40006C16.5314 6.95823 17.1582 6.86869 17.6 7.20006Z"/>
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02945 16.9706 3 12 3C7.02942 3 3 7.02945 3 12C3 16.9706 7.02942 21 12 21ZM12 6C12.5523 6 13 6.44772 13 7V13C13 13.5523 12.5523 14 12 14C11.4477 14 11 13.5523 11 13V7C11 6.44772 11.4477 6 12 6ZM13 17C13 17.5523 12.5523 18 12 18C11.4477 18 11 17.5523 11 17C11 16.4477 11.4477 16 12 16C12.5523 16 13 16.4477 13 17Z"/>
+    </symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M7.29289 8.29289C7.68342 7.90237 8.31658 7.90237 8.70711 8.29289L12 11.5858L15.2929 8.29289C15.6834 7.90237 16.3166 7.90237 16.7071 8.29289C17.0976 8.68342 17.0976 9.31658 16.7071 9.70711L12.7071 13.7071C12.3166 14.0976 11.6834 14.0976 11.2929 13.7071L7.29289 9.70711C6.90237 9.31658 6.90237 8.68342 7.29289 8.29289Z"/>
+    </symbol>
+    <symbol id="i-show" viewBox="0 0 20 20">
+      <path d="M.2 10a11 11 0 0119.6 0A11 11 0 01.2 10zm9.8 4a4 4 0 100-8 4 4 0 000 8zm0-2a2 2 0 110-4 2 2 0 010 4z"/>
+    </symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12C6 12.5523 6.44772 13 7 13H14.5858L12.2929 15.2929C11.9024 15.6834 11.9024 16.3166 12.2929 16.7071C12.6834 17.0976 13.3166 17.0976 13.7071 16.7071L17.7071 12.7071C17.8946 12.5196 18 12.2652 18 12C18 11.7348 17.8946 11.4804 17.7071 11.2929L13.7071 7.29289C13.3166 6.90237 12.6834 6.90237 12.2929 7.29289C11.9024 7.68342 11.9024 8.31658 12.2929 8.70711L14.5858 11H7C6.44772 11 6 11.4477 6 12Z"/>
+    </symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M14.5 5C12.8755 5 11.4519 5.86084 10.6609 7.15112C10.2905 7.05249 9.90137 7 9.5 7C7.14185 7 5.20752 8.81372 5.01562 11.1221C3.28247 11.5605 2 13.1304 2 15C2 17.2092 3.79077 19 6 19H11V14.4143L9.70703 15.707C9.31665 16.0977 8.68335 16.0977 8.29297 15.707C7.90234 15.3167 7.90234 14.6833 8.29297 14.293L11.293 11.293C11.6833 10.9023 12.3167 10.9023 12.707 11.293L15.707 14.293C16.0977 14.6833 16.0977 15.3167 15.707 15.707C15.3167 16.0977 14.6833 16.0977 14.293 15.707L13 14.4143V19H17C19.7615 19 22 16.7615 22 14C22 11.9492 20.7656 10.187 18.9993 9.41577C18.9543 6.96924 16.9573 5 14.5 5Z"/>
+    </symbol>
+    <!-- Play triangle (not in Base Web public set — inline path) -->
+    <symbol id="i-play" viewBox="0 0 24 24">
+      <path d="M8 5.14v14l11-7-11-7z"/>
+    </symbol>
+    <!-- Lock -->
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C9.79086 2 8 3.79086 8 6V8H6C4.89543 8 4 8.89543 4 10V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V10C20 8.89543 19.1046 8 18 8H16V6C16 3.79086 14.2091 2 12 2ZM14 8V6C14 4.89543 13.1046 4 12 4C10.8954 4 10 4.89543 10 6V8H14ZM12 12C12.5523 12 13 12.4477 13 13V17C13 17.5523 12.5523 18 12 18C11.4477 18 11 17.5523 11 17V13C11 12.4477 11.4477 12 12 12Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- STICKY HEADER -->
+<div class="header-bar">
+  <div class="header">
+    <button class="back-btn" aria-label="Back to Ways to Earn">
+      <svg width="24" height="24" fill="currentColor"><use href="#i-arrow-left"/></svg>
+    </button>
+    <span style="font-size:18px;font-weight:500;line-height:24px">Learning</span>
+  </div>
+</div>
+
+<div class="screen">
+
+  <!-- VIDEO HERO -->
+  <div class="video-hero" role="button" aria-label="Play introduction video">
+    <div class="video-bg"></div>
+    <div class="video-content">
+      <button class="play-btn" aria-label="Play">
+        <svg width="28" height="28" fill="currentColor"><use href="#i-play"/></svg>
+      </button>
+      <span class="video-label">Introduction · Watch before starting</span>
+    </div>
+    <span class="video-duration">4:32</span>
+  </div>
+
+  <!-- MODULE HEADER -->
+  <div class="module-header">
+    <div class="module-eyebrow">
+      <span class="tag tag-warn">Certification</span>
+      <span>·</span>
+      <span>Learning</span>
+    </div>
+    <h1 class="module-title">Heavy Item Handling</h1>
+    <p class="module-desc">Learn safe techniques for shopping and delivering heavy, bulky, or awkward items — protecting yourself and ensuring items arrive in great condition.</p>
+    <div class="module-meta-row">
+      <div class="meta-item">
+        <svg width="14" height="14" fill="currentColor" style="color:var(--foregroundAlt)"><use href="#i-show"/></svg>
+        4 lessons
+      </div>
+      <div class="meta-item">
+        <svg width="14" height="14" fill="currentColor" style="color:var(--foregroundAlt)"><use href="#i-alert"/></svg>
+        1 quiz · 5 questions
+      </div>
+      <div class="meta-item">
+        <svg width="14" height="14" fill="currentColor" style="color:var(--foregroundAlt)"><use href="#i-arrow-right"/></svg>
+        ~18 min
+      </div>
+    </div>
+  </div>
+
+  <!-- REWARD CALLOUT -->
+  <div class="reward-callout">
+    <div class="rc-left">
+      <div class="rc-eyebrow">Earn on completion</div>
+      <div class="rc-amount">100 pts</div>
+      <div class="rc-note">One-time · Added to your balance immediately</div>
+    </div>
+    <svg width="32" height="32" fill="currentColor" style="color:var(--primary);opacity:0.4;flex-shrink:0"><use href="#i-upload"/></svg>
+  </div>
+
+  <!-- OVERALL PROGRESS -->
+  <div class="overall-progress">
+    <div class="op-header">
+      <span class="op-label">Your progress</span>
+      <span class="op-fraction">2 of 4 lessons complete</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill fill-primary" style="width:50%"></div>
+    </div>
+    <span class="op-sublabel">Complete all lessons and pass the quiz to earn your certification</span>
+  </div>
+
+  <!-- LESSONS -->
+  <div class="section-label">Lessons</div>
+
+  <!-- Lesson 1 — Done -->
+  <div class="lesson-item">
+    <button class="lesson-trigger" onclick="toggleLesson(this)" aria-expanded="false">
+      <div class="step-circle done">
+        <svg width="16" height="16" fill="currentColor"><use href="#i-check"/></svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-title">What counts as a heavy item?</div>
+        <div class="lesson-meta">
+          <span>Completed Mar 28</span>
+          <div class="dot"></div>
+          <span>3 min</span>
+        </div>
+      </div>
+      <div class="lesson-right">
+        <span class="tag tag-pos">Done</span>
+        <svg class="expand-icon" width="20" height="20" fill="currentColor"><use href="#i-chevron-down"/></svg>
+      </div>
+    </button>
+    <div class="lesson-content">
+      <p>Items over 20 lbs, awkward dimensions (like a 12-pack), or anything that requires two hands to safely move. This includes water cases, pet food bags, laundry detergent, and large produce like watermelon.</p>
+      <p>Knowing what counts helps you plan your cart load before you reach the register — grouping heavy items at the bottom and near the cart wheels.</p>
+    </div>
+  </div>
+
+  <!-- Lesson 2 — Done -->
+  <div class="lesson-item">
+    <button class="lesson-trigger" onclick="toggleLesson(this)" aria-expanded="false">
+      <div class="step-circle done">
+        <svg width="16" height="16" fill="currentColor"><use href="#i-check"/></svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-title">Safe lifting technique</div>
+        <div class="lesson-meta">
+          <span>Completed Mar 29</span>
+          <div class="dot"></div>
+          <span>5 min</span>
+        </div>
+      </div>
+      <div class="lesson-right">
+        <span class="tag tag-pos">Done</span>
+        <svg class="expand-icon" width="20" height="20" fill="currentColor"><use href="#i-chevron-down"/></svg>
+      </div>
+    </button>
+    <div class="lesson-content">
+      <p>Bend at the knees, not the waist. Keep the load close to your body. Never twist while holding weight — pivot your feet instead. For anything over 40 lbs, ask a store associate for assistance.</p>
+      <p>Protecting your body on every shop keeps you earning longer. One preventable injury is worth more than any single order.</p>
+    </div>
+  </div>
+
+  <!-- Lesson 3 — Active -->
+  <div class="lesson-item">
+    <button class="lesson-trigger" onclick="toggleLesson(this)" aria-expanded="true">
+      <div class="step-circle active">3</div>
+      <div class="lesson-body">
+        <div class="lesson-title">Loading your cart and vehicle</div>
+        <div class="lesson-meta">
+          <span>Up next</span>
+          <div class="dot"></div>
+          <span>5 min</span>
+        </div>
+      </div>
+      <div class="lesson-right">
+        <span class="tag tag-pri">Up next</span>
+        <svg class="expand-icon open" width="20" height="20" fill="currentColor"><use href="#i-chevron-down"/></svg>
+      </div>
+    </button>
+    <div class="lesson-content open">
+      <p>In the cart, heavy items go on the lower rack or the bottom of the basket — never stacked on top of fragile or crushable items. Group by weight, not by department.</p>
+      <p>In your vehicle, place heavy bags flat in the trunk rather than upright. Avoid loading bags on seats where they can shift. For SUVs and hatchbacks, keep heavy items low and centered.</p>
+      <div class="lesson-content-actions">
+        <button class="btn-sm-primary">
+          <svg width="14" height="14" fill="currentColor"><use href="#i-play"/></svg>
+          Watch lesson
+        </button>
+        <button class="btn-sm-ghost">Mark as read</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lesson 4 — Locked -->
+  <div class="lesson-item">
+    <button class="lesson-trigger" style="cursor:not-allowed;opacity:0.5" disabled>
+      <div class="step-circle locked">
+        <svg width="14" height="14" fill="currentColor"><use href="#i-lock"/></svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-title muted">Delivery handoff for heavy orders</div>
+        <div class="lesson-meta">
+          <span>Complete lesson 3 to unlock</span>
+          <div class="dot"></div>
+          <span>5 min</span>
+        </div>
+      </div>
+      <div class="lesson-right">
+        <span class="tag tag-neu">Locked</span>
+      </div>
+    </button>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- QUIZ CARD -->
+  <div class="section-label">Knowledge check</div>
+  <div class="quiz-card">
+    <div class="quiz-card-header">
+      <div class="qh-left">
+        <div class="qh-eyebrow">Final quiz</div>
+        <div class="qh-title">Heavy Item Handling</div>
+        <div class="qh-sub">5 questions · Pass with 80% or higher</div>
+      </div>
+      <div class="quiz-lock-icon">
+        <svg width="20" height="20" fill="currentColor"><use href="#i-lock"/></svg>
+      </div>
+    </div>
+    <div class="quiz-card-body">
+      <div class="quiz-requirement">
+        <div class="req-icon done">
+          <svg width="12" height="12" fill="currentColor"><use href="#i-check"/></svg>
+        </div>
+        <span class="req-label done">Lesson 1 — What counts as a heavy item</span>
+      </div>
+      <div class="quiz-requirement">
+        <div class="req-icon done">
+          <svg width="12" height="12" fill="currentColor"><use href="#i-check"/></svg>
+        </div>
+        <span class="req-label done">Lesson 2 — Safe lifting technique</span>
+      </div>
+      <div class="quiz-requirement">
+        <div class="req-icon todo">
+          <svg width="12" height="12" fill="currentColor" style="color:var(--mono600)"><use href="#i-lock"/></svg>
+        </div>
+        <span class="req-label">Lesson 3 — Loading your cart and vehicle</span>
+      </div>
+      <div class="quiz-requirement">
+        <div class="req-icon todo">
+          <svg width="12" height="12" fill="currentColor" style="color:var(--mono600)"><use href="#i-lock"/></svg>
+        </div>
+        <span class="req-label">Lesson 4 — Delivery handoff for heavy orders</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.screen -->
+
+<!-- STICKY CTA -->
+<div class="cta-bar">
+  <div class="cta-inner">
+    <button class="btn-primary">
+      <svg width="18" height="18" fill="currentColor"><use href="#i-play"/></svg>
+      Continue — Lesson 3
+    </button>
+  </div>
+  <span class="cta-note">2 lessons remaining · Quiz unlocks after all lessons are complete</span>
+</div>
+
+<script>
+function toggleLesson(trigger) {
+  const item = trigger.closest('.lesson-item');
+  const content = item.querySelector('.lesson-content');
+  const icon = trigger.querySelector('.expand-icon');
+  if (!content) return;
+  const isOpen = content.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.lesson-content.open').forEach(c => c.classList.remove('open'));
+  document.querySelectorAll('.expand-icon.open').forEach(i => i.classList.remove('open'));
+  document.querySelectorAll('.lesson-trigger').forEach(t => t.setAttribute('aria-expanded','false'));
+  // Open this one if it was closed
+  if (!isOpen) {
+    content.classList.add('open');
+    icon.classList.add('open');
+    trigger.setAttribute('aria-expanded','true');
+  }
+}
+</script>
+</body>
+</html>
